@@ -123,11 +123,11 @@ def video_feed():
     )
 
 
-# 路由來顯示 test.jpg
-@app.route("/test.jpg")
-def display_test_image():
-    # 使用 send_file 提供與 app.py 同一目錄下的 test.jpg
-    return send_file("test.jpg", mimetype="image/jpeg")
+# 路由來顯示 default.jpg
+@app.route("/default.jpg")
+def display_default_image():
+    # 使用 send_file 提供與 app.py 同一目錄下的 default.jpg
+    return send_file("default.jpg", mimetype="image/jpeg")
 
 
 if __name__ == "__main__":
