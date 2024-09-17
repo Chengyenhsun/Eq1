@@ -14,13 +14,13 @@ save_folder = "static/wafer"
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
 
-# 初始化變數以追蹤時間和狀態
+# 初始化變數以追蹤狀態
 last_detection_time = 0
-continuous_detection = False
+photo_taken = False
 
 
 def detect_black_object_edge_and_average_gray(frame):
-    global last_detection_time, continuous_detection
+    global last_detection_time, photo_taken
 
     # 轉換為灰階
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -52,25 +52,24 @@ def detect_black_object_edge_and_average_gray(frame):
         if mean_val > threshold:
             status = "O"
             color = (0, 255, 0)  # 綠色
-            # 如果連續偵測到有 wafer 片
-            if not continuous_detection:
-                continuous_detection = True
-                last_detection_time = time.time()  # 記錄首次偵測時間
-            else:
-                # 如果偵測時間持續超過 1 秒
-                if time.time() - last_detection_time >= 1:
+            current_time = time.time()
+
+            # 如果偵測到 wafer
+            if not photo_taken:
+                if current_time - last_detection_time >= 2:  # 持續偵測 2 秒
                     # 拍照並保存
-                    timestamp = time.strftime("%Y%m%d-%H%M%S")
+                    timestamp = time.strftime("%m%d%H%M%S")  # 格式化時間為月日時分
                     filepath = os.path.join(save_folder, f"{timestamp}.jpg")
                     cv2.imwrite(filepath, frame)
                     print(f"wafer detected, image saved to {filepath}")
-                    # 重置偵測狀態以避免連續拍照
-                    continuous_detection = False
+                    # 標記已拍照
+                    photo_taken = True
         else:
             status = "X"
             color = (0, 0, 255)  # 紅色
-            # 如果未檢測到 wafer，重置連續偵測狀態
-            continuous_detection = False
+            # 如果未檢測到 wafer，重置狀態
+            photo_taken = False
+            last_detection_time = time.time()  # 重置最後偵測時間
 
         # 繪製輪廓
         cv2.drawContours(frame, [largest_contour], -1, color, 8)
