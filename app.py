@@ -1,14 +1,27 @@
 from flask import Flask, Response, render_template
 import cv2
 import numpy as np
+import time
+import os
 
 app = Flask(__name__)
 
 # 定義 MJPG-Streamer 提供的 URL
 url = "http://192.168.0.160:8080/?action=stream"
 
+# 設定資料夾路徑
+save_folder = "static/wafer"
+if not os.path.exists(save_folder):
+    os.makedirs(save_folder)
+
+# 初始化變數以追蹤時間和狀態
+last_detection_time = 0
+continuous_detection = False
+
 
 def detect_black_object_edge_and_average_gray(frame):
+    global last_detection_time, continuous_detection
+
     # 轉換為灰階
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -34,26 +47,30 @@ def detect_black_object_edge_and_average_gray(frame):
         # 使用遮罩計算輪廓內的灰階值平均
         mean_val = cv2.mean(gray, mask=mask)[0]  # 取得灰階平均值
 
-        # 設定閾值判斷是否有CD片
+        # 設定閾值判斷是否有wafer片
         threshold = 80
         if mean_val > threshold:
             status = "O"
             color = (0, 255, 0)  # 綠色
+            # 如果連續偵測到有 wafer 片
+            if not continuous_detection:
+                continuous_detection = True
+                last_detection_time = time.time()  # 記錄首次偵測時間
+            else:
+                # 如果偵測時間持續超過 1 秒
+                if time.time() - last_detection_time >= 1:
+                    # 拍照並保存
+                    timestamp = time.strftime("%Y%m%d-%H%M%S")
+                    filepath = os.path.join(save_folder, f"{timestamp}.jpg")
+                    cv2.imwrite(filepath, frame)
+                    print(f"wafer detected, image saved to {filepath}")
+                    # 重置偵測狀態以避免連續拍照
+                    continuous_detection = False
         else:
             status = "X"
             color = (0, 0, 255)  # 紅色
-
-        # 在影像上顯示平均值和狀態
-        # cv2.putText(
-        #     frame,
-        #     f"Mean Gray: {mean_val:.2f}",
-        #     (10, 30),
-        #     cv2.FONT_HERSHEY_SIMPLEX,
-        #     1,
-        #     (255, 255, 255),
-        #     2,
-        # )
-        # cv2.putText(frame, status, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+            # 如果未檢測到 wafer，重置連續偵測狀態
+            continuous_detection = False
 
         # 繪製輪廓
         cv2.drawContours(frame, [largest_contour], -1, color, 8)
@@ -71,7 +88,7 @@ def generate_frames():
         if not success:
             break
 
-        # 偵測黑色物體邊緣並計算灰階平均值和CD狀態
+        # 偵測黑色物體邊緣並計算灰階平均值和wafer狀態
         frame = detect_black_object_edge_and_average_gray(frame)
 
         # 將影像轉換為 JPEG 格式
