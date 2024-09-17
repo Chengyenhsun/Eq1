@@ -1,4 +1,4 @@
-from flask import Flask, Response, render_template
+from flask import Flask, Response, render_template, send_file
 import cv2
 import numpy as np
 import time
@@ -8,11 +8,6 @@ app = Flask(__name__)
 
 # 定義 MJPG-Streamer 提供的 URL
 url = "http://192.168.0.160:8080/?action=stream"
-
-# 設定資料夾路徑
-save_folder = "static/wafer"
-if not os.path.exists(save_folder):
-    os.makedirs(save_folder)
 
 # 初始化變數以追蹤狀態
 last_detection_time = 0
@@ -69,11 +64,6 @@ def detect_black_object_edge_and_average_gray(frame):
                     # 將原始影像與白色背景進行合併
                     frame_with_mask = cv2.bitwise_or(frame_with_mask, frame)
 
-                    # 拍照並保存
-                    timestamp = time.strftime("%m%d%H%M%S")  # 格式化時間為月日時分秒
-                    filepath = os.path.join(save_folder, f"{timestamp}.jpg")
-                    cv2.imwrite(filepath, frame_with_mask)
-                    print(f"wafer detected, image saved to {filepath}")
                     # 標記已拍照
                     photo_taken = True
         else:
@@ -112,15 +102,25 @@ def generate_frames():
 
 @app.route("/")
 def index():
+    # 渲染 index.html 模板，顯示即時影像和照片
     return render_template("index.html")
 
 
 @app.route("/video_feed")
 def video_feed():
+    # 提供視頻流
     return Response(
         generate_frames(), mimetype="multipart/x-mixed-replace; boundary=frame"
     )
 
 
+# 路由來顯示 test.jpg
+@app.route("/test.jpg")
+def display_test_image():
+    # 使用 send_file 提供與 app.py 同一目錄下的 test.jpg
+    return send_file("test.jpg", mimetype="image/jpeg")
+
+
 if __name__ == "__main__":
+    # 啟動 Flask 應用，並設置為 debug 模式
     app.run(host="0.0.0.0", port=5001, debug=True)
