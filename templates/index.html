@@ -5,9 +5,48 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flask Webcam Stream</title>
+    <style>
+        .container {
+            display: flex;
+            justify-content: space-around;
+        }
+        .box {
+            width: 700px; /* 調整框的寬度 */
+            height: 500px; /* 調整框的高度 */
+            border: 2px solid black; /* 添加黑色邊框 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .box img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .box-title {
+            text-align: center;
+            font-size: 24px; /* 增大字體 */
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Live Webcam Stream</h1>
-    <img src="{{ url_for('video_feed') }}" alt="Webcam Stream">
+    <h1>Live Webcam Stream and Test Image</h1>
+    <div class="container">
+        <!-- 左邊顯示即時影像，放在框外顯示標題 -->
+        <div>
+            <div class="box-title">Live Webcam Stream</div>
+            <div class="box">
+                <img src="{{ url_for('video_feed') }}" alt="Webcam Stream">
+            </div>
+        </div>
+        <!-- 右邊顯示 test.jpg，放在框外顯示標題 -->
+        <div>
+            <div class="box-title">Identification Results</div>
+            <div class="box">
+                <img src="{{ url_for('display_test_image') }}" alt="Test Image">
+            </div>
+        </div>
+    </div>
 </body>
 </html>
