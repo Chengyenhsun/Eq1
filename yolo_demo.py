@@ -1,10 +1,10 @@
 from ultralytics import YOLO
 
 # 載入自定義訓練好的模型
-model = YOLO("best3.pt")
+model = YOLO("best.pt")
 
 # 進行預測
-results = model.predict("image_without_black_circle.jpg")
+results = model.predict("0917212622.jpg")
 
 # 若結果是列表，則處理每個結果
 if isinstance(results, list):
