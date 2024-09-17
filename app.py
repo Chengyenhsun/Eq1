@@ -8,7 +8,10 @@ app = Flask(__name__)
 
 # 定義 MJPG-Streamer 提供的 URL
 url = "http://192.168.0.160:8080/?action=stream"
-
+# 設定資料夾路徑
+save_folder = "static/wafer"
+if not os.path.exists(save_folder):
+    os.makedirs(save_folder)
 # 初始化變數以追蹤狀態
 last_detection_time = 0
 photo_taken = False
@@ -63,6 +66,12 @@ def detect_black_object_edge_and_average_gray(frame):
 
                     # 將原始影像與白色背景進行合併
                     frame_with_mask = cv2.bitwise_or(frame_with_mask, frame)
+
+                    # 拍照並保存
+                    timestamp = time.strftime("%m%d%H%M%S")  # 格式化時間為月日時分秒
+                    filepath = os.path.join(save_folder, f"{timestamp}.jpg")
+                    cv2.imwrite(filepath, frame_with_mask)
+                    print(f"wafer detected, image saved to {filepath}")
 
                     # 標記已拍照
                     photo_taken = True
