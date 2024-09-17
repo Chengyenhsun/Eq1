@@ -8,6 +8,7 @@ from ultralytics import YOLO  # 引入YOLO模型
 app = Flask(__name__)
 
 # 定義 MJPG-Streamer 提供的 URL
+# url = "http://192.168.0.160:8080/?action=stream"
 url = "http://192.168.1.123:8080/?action=stream"
 
 # 設定資料夾路徑
