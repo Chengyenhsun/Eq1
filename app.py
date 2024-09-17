@@ -3,19 +3,27 @@ import cv2
 import numpy as np
 import time
 import os
+from ultralytics import YOLO  # 引入YOLO模型
 
 app = Flask(__name__)
 
 # 定義 MJPG-Streamer 提供的 URL
-# url = "http://192.168.0.160:8080/?action=stream"
 url = "http://192.168.1.123:8080/?action=stream"
+
 # 設定資料夾路徑
 save_folder = "static/wafer"
+result_folder = "static/result"
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
+if not os.path.exists(result_folder):
+    os.makedirs(result_folder)
+
 # 初始化變數以追蹤狀態
 last_detection_time = 0
 photo_taken = False
+
+# 載入自定義訓練好的模型
+model = YOLO("best.pt")
 
 
 def detect_black_object_edge_and_average_gray(frame):
@@ -68,11 +76,22 @@ def detect_black_object_edge_and_average_gray(frame):
                     # 將原始影像與白色背景進行合併
                     frame_with_mask = cv2.bitwise_or(frame_with_mask, frame)
 
-                    # 拍照並保存
+                    # 拍照並保存原始影像
                     timestamp = time.strftime("%m%d%H%M%S")  # 格式化時間為月日時分秒
                     filepath = os.path.join(save_folder, f"{timestamp}.jpg")
                     cv2.imwrite(filepath, frame_with_mask)
                     print(f"wafer detected, image saved to {filepath}")
+
+                    # 進行 YOLO 模型預測
+                    results = model.predict(frame_with_mask)
+
+                    # 儲存辨識後的影像結果
+                    for i, result in enumerate(results):
+                        result_filepath = os.path.join(
+                            result_folder, f"result_{timestamp}_{i}.jpg"
+                        )
+                        result.save(result_filepath)
+                        print(f"Recognition result saved to {result_filepath}")
 
                     # 標記已拍照
                     photo_taken = True
