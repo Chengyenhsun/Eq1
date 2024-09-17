@@ -29,7 +29,7 @@ def detect_black_object_edge_and_average_gray(frame):
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
     # 使用 Canny 邊緣檢測器
-    edges = cv2.Canny(blurred, threshold1=50, threshold2=150)
+    edges = cv2.Canny(blurred, threshold1=80, threshold2=200)
 
     # 查找輪廓
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -57,10 +57,22 @@ def detect_black_object_edge_and_average_gray(frame):
             # 如果偵測到 wafer
             if not photo_taken:
                 if current_time - last_detection_time >= 2:  # 持續偵測 2 秒
+                    # 創建遮罩以外的部分
+                    background_mask = cv2.bitwise_not(mask)
+
+                    # 將背景部分設為白色
+                    white_background = np.ones_like(frame) * 255
+                    frame_with_mask = cv2.bitwise_and(
+                        white_background, white_background, mask=background_mask
+                    )
+
+                    # 將原始影像與白色背景進行合併
+                    frame_with_mask = cv2.bitwise_or(frame_with_mask, frame)
+
                     # 拍照並保存
-                    timestamp = time.strftime("%m%d%H%M%S")  # 格式化時間為月日時分
+                    timestamp = time.strftime("%m%d%H%M%S")  # 格式化時間為月日時分秒
                     filepath = os.path.join(save_folder, f"{timestamp}.jpg")
-                    cv2.imwrite(filepath, frame)
+                    cv2.imwrite(filepath, frame_with_mask)
                     print(f"wafer detected, image saved to {filepath}")
                     # 標記已拍照
                     photo_taken = True
