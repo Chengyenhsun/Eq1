@@ -144,11 +144,20 @@ def video_feed():
     )
 
 
-# 路由來顯示 default.jpg
-@app.route("/default.jpg")
-def display_default_image():
-    # 使用 send_file 提供與 app.py 同一目錄下的 default.jpg
-    return send_file("default.jpg", mimetype="image/jpeg")
+@app.route("/get_latest_result")
+def get_latest_result():
+    # 檢查 result 資料夾中的最新結果檔案
+    result_files = [f for f in os.listdir(result_folder) if f.endswith(".jpg")]
+    if result_files:
+        latest_file = max(
+            result_files, key=lambda f: os.path.getctime(os.path.join(result_folder, f))
+        )
+        latest_image_url = os.path.join(result_folder, latest_file)
+    else:
+        # 如果沒有檔案，顯示預設圖片
+        latest_image_url = "/default.jpg"
+
+    return {"latest_image": latest_image_url}
 
 
 if __name__ == "__main__":

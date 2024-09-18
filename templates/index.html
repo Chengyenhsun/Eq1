@@ -2,51 +2,72 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flask Webcam Stream</title>
+    <title>YOLO Wafer Detection</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
         .container {
             display: flex;
             justify-content: space-around;
+            margin: 20px;
+        }
+        .section {
+            text-align: center;
+            width: 800px; /* 固定寬度 */
         }
         .box {
-            width: 700px; /* 調整框的寬度 */
-            height: 500px; /* 調整框的高度 */
-            border: 2px solid black; /* 添加黑色邊框 */
+            width: 100%; /* 與 section 同寬 */
+            height: 600px; /* 固定高度 */
+            border: 2px solid #000; /* 添加黑色邊框 */
+            padding: 10px; /* 調整內邊距 */
+            box-sizing: border-box; /* 確保邊框和內邊距不影響寬度和高度 */
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
         }
-        .box img {
-            max-width: 100%;
-            max-height: 100%;
+        img {
+            max-width: 100%; /* 圖片寬度自適應框 */
+            max-height: 100%; /* 圖片高度自適應框 */
         }
-        .box-title {
-            text-align: center;
-            font-size: 24px; /* 增大字體 */
-            font-weight: bold;
-            margin-bottom: 10px;
+        h2 {
+            font-size: 28px; /* 調整標題字體大小 */
+            margin-bottom: 10px; /* 調整標題與框的距離 */
+            text-align: center; /* 文字置中 */
         }
     </style>
 </head>
 <body>
-    <h1>Live Webcam Stream and Test Image</h1>
     <div class="container">
-        <!-- 左邊顯示即時影像，放在框外顯示標題 -->
-        <div>
-            <div class="box-title">Live Webcam Stream</div>
+        <!-- 左側顯示即時影像 -->
+        <div class="section">
+            <h2>Live Video</h2>
             <div class="box">
-                <img src="{{ url_for('video_feed') }}" alt="Webcam Stream">
+                <img src="{{ url_for('video_feed') }}" alt="Live Video Feed">
             </div>
         </div>
-        <!-- 右邊顯示 default.jpg，放在框外顯示標題 -->
-        <div>
-            <div class="box-title">Identification Results</div>
+        <!-- 右側顯示識別結果 -->
+        <div class="section">
+            <h2>Recognition Result</h2>
             <div class="box">
-                <img src="{{ url_for('display_default_image') }}" alt="Test Image">
+                <img id="result" src="/default.jpg" alt="Recognition Result">
             </div>
         </div>
     </div>
+
+    <script>
+        // 定時每3秒檢查最新結果
+        setInterval(function() {
+            fetch("/get_latest_result")
+            .then(response => response.json())
+            .then(data => {
+                // 更新右邊顯示的圖片
+                document.getElementById("result").src = data.latest_image;
+            });
+        }, 3000); // 每3秒檢查一次
+    </script>
 </body>
 </html>
