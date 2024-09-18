@@ -160,6 +160,12 @@ def get_latest_result():
     return {"latest_image": latest_image_url}
 
 
+# 提供 default.jpg 圖片的路由
+@app.route("/default.jpg")
+def default_image():
+    return send_file("default.jpg", mimetype="image/jpeg")
+
+
 if __name__ == "__main__":
     # 啟動 Flask 應用，並設置為 debug 模式
     app.run(host="0.0.0.0", port=5001, debug=True)
