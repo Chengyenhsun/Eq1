@@ -31,20 +31,23 @@ model = YOLO("best.pt")
 def detect_black_object_edge_and_average_gray(frame):
     global last_detection_time, photo_taken
 
+    # 將影像轉成灰階並進行模糊處理和邊緣檢測
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     edges = cv2.Canny(blurred, threshold1=80, threshold2=200)
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+    # 偵測到邊緣
     if contours:
         largest_contour = max(contours, key=cv2.contourArea)
         mask = np.zeros_like(gray)
         cv2.drawContours(mask, [largest_contour], -1, 255, thickness=cv2.FILLED)
         mean_val = cv2.mean(gray, mask=mask)[0]
 
-        threshold = 80
+        threshold = 80  # 設定灰階均值閾值
         current_time = time.time()
 
+        # 當灰階均值大於設定的閾值時
         if mean_val > threshold:
             status = "O"
             color = (0, 255, 0)  # 綠色
@@ -53,9 +56,10 @@ def detect_black_object_edge_and_average_gray(frame):
             if last_detection_time == 0:
                 last_detection_time = current_time
 
-            # 檢查 wafer 片是否連續偵測超過 5 秒
+            # 檢查 wafer 是否已被連續偵測超過 2 秒
             if current_time - last_detection_time >= 2:
                 if not photo_taken:
+                    # 生成影像遮罩並將背景變白
                     background_mask = cv2.bitwise_not(mask)
                     white_background = np.ones_like(frame) * 255
                     frame_with_mask = cv2.bitwise_and(
@@ -67,8 +71,20 @@ def detect_black_object_edge_and_average_gray(frame):
                     cv2.imwrite(filepath, frame_with_mask)
                     print(f"wafer detected, image saved to {filepath}")
 
-                    # 模型預測
+                    # 使用 YOLO 模型進行物件辨識
                     results = model.predict(frame_with_mask)
+
+                    # 計算劃痕(scratch)和污點(stain)的數量
+                    scratch_count = 0
+                    stain_count = 0
+                    for result in results:
+                        for box in result.boxes:
+                            if box.cls == 0:  # 假設 class 0 是劃痕
+                                scratch_count += 1
+                            elif box.cls == 1:  # 假設 class 1 是污點
+                                stain_count += 1
+
+                    # 儲存辨識結果圖片
                     for i, result in enumerate(results):
                         result_filepath = os.path.join(
                             result_folder, f"result_{timestamp}_{i}.jpg"
@@ -79,13 +95,15 @@ def detect_black_object_edge_and_average_gray(frame):
                     # 標記已拍照
                     photo_taken = True
 
-                    # 發送最新辨識結果的訊息
+                    # 發送最新辨識結果和物件數量到前端
                     socketio.emit(
                         "new_result",
                         {
                             "latest_image": os.path.join(
                                 result_folder, f"result_{timestamp}_0.jpg"
-                            )
+                            ),
+                            "scratch_count": scratch_count,
+                            "stain_count": stain_count,
                         },
                     )
         else:
@@ -100,6 +118,7 @@ def detect_black_object_edge_and_average_gray(frame):
 
 
 def generate_frames():
+    # 連接到影片串流並生成影像幀
     cap = cv2.VideoCapture(url)
     while True:
         success, frame = cap.read()
