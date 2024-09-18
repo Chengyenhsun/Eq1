@@ -43,13 +43,19 @@ def detect_black_object_edge_and_average_gray(frame):
         mean_val = cv2.mean(gray, mask=mask)[0]
 
         threshold = 80
+        current_time = time.time()
+
         if mean_val > threshold:
             status = "O"
             color = (0, 255, 0)  # 綠色
-            current_time = time.time()
 
-            if not photo_taken:
-                if current_time - last_detection_time >= 2:
+            # 如果是第一次偵測到 wafer，記錄偵測開始時間
+            if last_detection_time == 0:
+                last_detection_time = current_time
+
+            # 檢查 wafer 片是否連續偵測超過 5 秒
+            if current_time - last_detection_time >= 2:
+                if not photo_taken:
                     background_mask = cv2.bitwise_not(mask)
                     white_background = np.ones_like(frame) * 255
                     frame_with_mask = cv2.bitwise_and(
@@ -61,6 +67,7 @@ def detect_black_object_edge_and_average_gray(frame):
                     cv2.imwrite(filepath, frame_with_mask)
                     print(f"wafer detected, image saved to {filepath}")
 
+                    # 模型預測
                     results = model.predict(frame_with_mask)
                     for i, result in enumerate(results):
                         result_filepath = os.path.join(
@@ -69,6 +76,7 @@ def detect_black_object_edge_and_average_gray(frame):
                         result.save(result_filepath)
                         print(f"Recognition result saved to {result_filepath}")
 
+                    # 標記已拍照
                     photo_taken = True
 
                     # 發送最新辨識結果的訊息
@@ -84,7 +92,7 @@ def detect_black_object_edge_and_average_gray(frame):
             status = "X"
             color = (0, 0, 255)  # 紅色
             photo_taken = False
-            last_detection_time = time.time()
+            last_detection_time = 0  # 重置偵測時間
 
         cv2.drawContours(frame, [largest_contour], -1, color, 8)
 
