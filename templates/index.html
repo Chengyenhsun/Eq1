@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YOLO Wafer Detection</title>
     <style>
+        /* 保留原有樣式 */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -36,17 +37,22 @@
         h2 {
             font-size: 28px; /* 調整標題字體大小 */
             margin-bottom: 10px; /* 調整標題與框的距離 */
-            text-align: center; /* 文字置中 */
+            text-align: center; /* 文字居中 */
         }
         .result-container {
             margin-top: 20px; /* 框框和文字之間的距離 */
             display: flex;
-            justify-content: center; /* 水平置中 */
+            justify-content: center; /* 水平居中 */
         }
         .result-text {
             font-size: 32px; /* 加大字體 */
             line-height: 1.5; /* 讓兩行之間有一點距離 */
-            text-align: center; /* 文字置中 */
+            text-align: center; /* 文字居中 */
+        }
+        .status-text {
+            font-size: 32px; /* 狀態文本字體大小 */
+            margin-top: 20px; /* 狀態文本的上邊距 */
+            text-align: center;
         }
     </style>
     <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
@@ -58,6 +64,8 @@
             <div class="box">
                 <img src="{{ url_for('video_feed') }}" alt="Live Video Feed">
             </div>
+            <!-- 新增狀態顯示區域 -->
+            <p id="status-text" class="status-text">No detection yet</p>
         </div>
         <div class="section">
             <h2>Recognition Result</h2>
@@ -65,7 +73,6 @@
                 <img id="result" src="/default.jpg" alt="Recognition Result">
             </div>
             <div class="result-container">
-                <!-- 預設顯示 "No detection yet" 並置中 -->
                 <p id="result-text" class="result-text">No detection yet</p>
             </div>
         </div>
@@ -75,17 +82,26 @@
         // 初始化 SocketIO
         const socket = io();
 
-        // 當收到新的辨識結果時更新圖片和結果文字
+        // 當收到新的識別結果時更新圖片和結果文字
         socket.on('new_result', (data) => {
             document.getElementById("result").src = data.latest_image;
             
             // 更新結果文字為 Scratch 和 Stain 數量
             document.getElementById("result-text").innerHTML = 
                 `Scratch: ${data.scratch_count}<br>Stain: ${data.stain_count}`;
+
             // 確保 base64 編碼圖片數據正確設置
             const imgElement = document.getElementById("result");
             const resultImage = `data:image/jpeg;base64,${data.latest_image}`;
             imgElement.src = resultImage;
+            
+            // 狀態文本更新為檢查完成
+            document.getElementById("status-text").innerHTML = "檢查完成";
+        });
+
+        // 當檢測到 Wafer 時更新狀態
+        socket.on('detection_status', (status) => {
+            document.getElementById("status-text").innerHTML = status;
         });
     </script>
 </body>

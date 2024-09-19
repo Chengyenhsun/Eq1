@@ -15,12 +15,12 @@ socketio = SocketIO(app)
 url = "http://192.168.0.160:8080/?action=stream"
 
 # 設定資料夾路徑
-save_folder = "static/wafer"
-result_folder = "static/result"
-if not os.path.exists(save_folder):
-    os.makedirs(save_folder)
-if not os.path.exists(result_folder):
-    os.makedirs(result_folder)
+# save_folder = "static/wafer"
+# result_folder = "static/result"
+# if not os.path.exists(save_folder):
+#     os.makedirs(save_folder)
+# if not os.path.exists(result_folder):
+#     os.makedirs(result_folder)
 
 # 初始化變數以追蹤狀態
 last_detection_time = 0
@@ -63,7 +63,7 @@ def detect_black_object_edge_and_average_gray(frame):
                         white_background, white_background, mask=background_mask
                     )
                     frame_with_mask = cv2.bitwise_or(frame_with_mask, frame)
-
+                    print("偵測到wafer")
                     results = model.predict(frame_with_mask)
 
                     scratch_count = 0
@@ -74,7 +74,7 @@ def detect_black_object_edge_and_average_gray(frame):
                                 scratch_count += 1
                             elif box.cls == 1:
                                 stain_count += 1
-
+                    print("辨識完成")
                     for result in results:
                         result_image = result.plot()
                         _, buffer = cv2.imencode(".jpg", result_image)
@@ -88,14 +88,16 @@ def detect_black_object_edge_and_average_gray(frame):
                                 "stain_count": stain_count,
                             },
                         )
-
+                        print("傳到前端")
                     photo_taken = True
+                    socketio.emit("detection_status", "偵測到 Wafer，檢查缺陷中")
 
         else:
             status = "X"
             color = (0, 0, 255)
             photo_taken = False
             last_detection_time = 0
+            # socketio.emit("detection_status", "未偵測到 Wafer")
 
         cv2.drawContours(frame, [largest_contour], -1, color, 8)
 
@@ -133,4 +135,4 @@ def default_image():
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=5001, debug=True)
+    socketio.run(app, host="0.0.0.0", port=5003, debug=True)
