@@ -65,7 +65,6 @@
                 <img id="result" src="/default.jpg" alt="Recognition Result">
             </div>
             <div class="result-container">
-                <!-- 預設顯示 "No detection yet" 並置中 -->
                 <p id="result-text" class="result-text">No detection yet</p>
             </div>
         </div>
@@ -77,15 +76,12 @@
 
         // 當收到新的辨識結果時更新圖片和結果文字
         socket.on('new_result', (data) => {
-            document.getElementById("result").src = data.latest_image;
+            // 更新結果圖片
+            document.getElementById("result").src = `data:image/jpeg;base64,${data.latest_image}`;
             
             // 更新結果文字為 Scratch 和 Stain 數量
             document.getElementById("result-text").innerHTML = 
                 `Scratch: ${data.scratch_count}<br>Stain: ${data.stain_count}`;
-            // 確保 base64 編碼圖片數據正確設置
-            const imgElement = document.getElementById("result");
-            const resultImage = `data:image/jpeg;base64,${data.latest_image}`;
-            imgElement.src = resultImage;
         });
     </script>
 </body>
