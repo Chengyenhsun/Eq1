@@ -82,6 +82,10 @@
             // 更新結果文字為 Scratch 和 Stain 數量
             document.getElementById("result-text").innerHTML = 
                 `Scratch: ${data.scratch_count}<br>Stain: ${data.stain_count}`;
+            // 確保 base64 編碼圖片數據正確設置
+            const imgElement = document.getElementById("result");
+            const resultImage = `data:image/jpeg;base64,${data.latest_image}`;
+            imgElement.src = resultImage;
         });
     </script>
 </body>
