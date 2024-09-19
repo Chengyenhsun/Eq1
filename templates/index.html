@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YOLO Wafer Detection</title>
     <style>
-        /* 保留原有樣式 */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -29,6 +28,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            background-color: #f0f0f0; /* 內部背景顏色 */
         }
         img {
             max-width: 100%; /* 圖片寬度自適應框 */
@@ -64,8 +64,7 @@
             <div class="box">
                 <img src="{{ url_for('video_feed') }}" alt="Live Video Feed">
             </div>
-            <!-- 新增狀態顯示區域 -->
-            <p id="status-text" class="status-text">No detection yet</p>
+            <p id="status-text" class="status-text">等待中...</p>
         </div>
         <div class="section">
             <h2>Recognition Result</h2>
@@ -84,19 +83,15 @@
 
         // 當收到新的識別結果時更新圖片和結果文字
         socket.on('new_result', (data) => {
-            document.getElementById("result").src = data.latest_image;
+            const imgElement = document.getElementById("result");
+            const resultImage = `data:image/jpeg;base64,${data.latest_image}`;
             
+            // 更新結果圖片
+            imgElement.src = resultImage;
+
             // 更新結果文字為 Scratch 和 Stain 數量
             document.getElementById("result-text").innerHTML = 
                 `Scratch: ${data.scratch_count}<br>Stain: ${data.stain_count}`;
-
-            // 確保 base64 編碼圖片數據正確設置
-            const imgElement = document.getElementById("result");
-            const resultImage = `data:image/jpeg;base64,${data.latest_image}`;
-            imgElement.src = resultImage;
-            
-            // 狀態文本更新為檢查完成
-            document.getElementById("status-text").innerHTML = "檢查完成";
         });
 
         // 當檢測到 Wafer 時更新狀態

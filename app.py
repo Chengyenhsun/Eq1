@@ -39,6 +39,8 @@ def detect_black_object_edge_and_average_gray(frame):
     edges = cv2.Canny(blurred, threshold1=80, threshold2=200)
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+    green_detected = False
+
     if contours:
         largest_contour = max(contours, key=cv2.contourArea)
         mask = np.zeros_like(gray)
@@ -49,14 +51,18 @@ def detect_black_object_edge_and_average_gray(frame):
         current_time = time.time()
 
         if mean_val > threshold:
-            status = "O"
-            color = (0, 255, 0)
+            color = (0, 255, 0)  # 綠色
+            green_detected = True
 
             if last_detection_time == 0:
                 last_detection_time = current_time
+                # 偵測到新的綠色，發送檢查缺陷中訊息
 
-            if current_time - last_detection_time >= 2:
+                photo_taken = False
+            elif current_time - last_detection_time >= 2:
+                socketio.emit("detection_status", "偵測到 Wafer，檢查缺陷中")
                 if not photo_taken:
+                    # 影像處理和辨識
                     background_mask = cv2.bitwise_not(mask)
                     white_background = np.ones_like(frame) * 255
                     frame_with_mask = cv2.bitwise_and(
@@ -75,6 +81,8 @@ def detect_black_object_edge_and_average_gray(frame):
                             elif box.cls == 1:
                                 stain_count += 1
                     print("辨識完成")
+
+                    # 傳送辨識結果到前端
                     for result in results:
                         result_image = result.plot()
                         _, buffer = cv2.imencode(".jpg", result_image)
@@ -89,15 +97,19 @@ def detect_black_object_edge_and_average_gray(frame):
                             },
                         )
                         print("傳到前端")
-                    photo_taken = True
-                    socketio.emit("detection_status", "偵測到 Wafer，檢查缺陷中")
 
+                    # 在辨識完成後，保持狀態為「辨識完成」
+                    socketio.emit("detection_status", "辨識完成")
+                    photo_taken = True
         else:
-            status = "X"
-            color = (0, 0, 255)
+            color = (0, 0, 255)  # 紅色
             photo_taken = False
             last_detection_time = 0
-            # socketio.emit("detection_status", "未偵測到 Wafer")
+            if not green_detected:
+                # 當未偵測到 Wafer 時，更新狀態為「未偵測到 Wafer」
+                socketio.emit("detection_status", "未偵測到 Wafer")
+            # 確保狀態更新為「等待中」
+            socketio.emit("detection_status", "等待中")
 
         cv2.drawContours(frame, [largest_contour], -1, color, 8)
 
