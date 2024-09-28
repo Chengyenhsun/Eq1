@@ -11,8 +11,16 @@ app = Flask(__name__)
 socketio = SocketIO(app)
 
 # 定義 MJPG-Streamer 提供的 URL
-url = "http://192.168.1.123:8080/?action=stream"
-# url = "http://192.168.0.160:8080/?action=stream"
+# url = "http://192.168.1.123:8080/?action=stream"
+url = "http://192.168.0.160:8081/?action=stream"
+
+# 設定資料夾路徑
+# save_folder = "static/wafer"
+# result_folder = "static/result"
+# if not os.path.exists(save_folder):
+#     os.makedirs(save_folder)
+# if not os.path.exists(result_folder):
+#     os.makedirs(result_folder)
 
 # 初始化變數以追蹤狀態
 last_detection_time = 0
@@ -28,7 +36,7 @@ def detect_black_object_edge_and_average_gray(frame):
     # 影像處理和辨識邏輯
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    edges = cv2.Canny(blurred, threshold1=80, threshold2=200)
+    edges = cv2.Canny(blurred, threshold1=100, threshold2=300)
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if contours:
@@ -55,7 +63,9 @@ def detect_black_object_edge_and_average_gray(frame):
                         white_background, white_background, mask=background_mask
                     )
                     frame_with_mask = cv2.bitwise_or(frame_with_mask, frame)
-
+                    print("偵測到wafer")
+                    # mask_filename = f"mask_{int(time.time())}.jpg"
+                    # cv2.imwrite(mask_filename, frame_with_mask)
                     results = model.predict(frame_with_mask)
 
                     scratch_count = 0
@@ -66,12 +76,13 @@ def detect_black_object_edge_and_average_gray(frame):
                                 scratch_count += 1
                             elif box.cls == 1:
                                 stain_count += 1
-
+                    print("辨識完成")
                     for result in results:
                         result_image = result.plot()
                         _, buffer = cv2.imencode(".jpg", result_image)
                         result_image_bytes = base64.b64encode(buffer).decode("utf-8")
 
+                        # 傳送結果給前端
                         socketio.emit(
                             "new_result",
                             {
@@ -80,14 +91,21 @@ def detect_black_object_edge_and_average_gray(frame):
                                 "stain_count": stain_count,
                             },
                         )
-
+                        print("傳到前端")
                     photo_taken = True
+                    # 傳送"檢查中"狀態到前端
+                    socketio.emit("detection_status", "偵測到 Wafer，檢查缺陷中")
 
+                # 傳送"檢查完成"狀態到前端
+                socketio.emit("detection_status", "檢查完成")
         else:
             status = "X"
             color = (0, 0, 255)
             photo_taken = False
             last_detection_time = 0
+
+            # 傳送"等待中"狀態到前端
+            socketio.emit("detection_status", "等待中")
 
         cv2.drawContours(frame, [largest_contour], -1, color, 8)
 
@@ -125,4 +143,4 @@ def default_image():
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=5001, debug=True)
+    socketio.run(app, host="0.0.0.0", port=5003, debug=True)
